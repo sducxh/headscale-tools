@@ -123,7 +123,7 @@ Type=simple
 User=headscale
 Group=headscale
 ExecStart=${BINARY_FILE_PATH} serve
-Restart=on-failure
+Restart=always
 RestartSec=30s
 RestartPreventExitStatus=23
 LimitNPROC=10000
@@ -183,8 +183,8 @@ noise:
   private_key_path: ${DATA_PATH}/noise_private.key
 
 ip_prefixes:
-  - fd7a:115c:a1e0::/48
-  - 172.16.0.0/16
+  #- fd7a:115c:a1e0::/48
+  - 100.64.0.0/16
 
 derp:
   server:
@@ -252,7 +252,7 @@ enable_headscale() {
 start_headscale() {
   if [ -f "${SERVICE_FILE_PATH}" ]; then
     systemctl start headscale
-    sleep 1s
+    sleep 30s
     status_check
     if [ $? == ${STATUS_NOT_RUNNING} ]; then
       LOGE "start headscale service failed,exit"
@@ -269,7 +269,7 @@ start_headscale() {
 restart_headscale() {
   if [ -f "${SERVICE_FILE_PATH}" ]; then
     systemctl restart headscale
-    sleep 1s
+    sleep 30s
     status_check
     if [ $? == 0 ]; then
       LOGE "restart headscale service failed,exit"
@@ -313,7 +313,7 @@ install_headscale() {
   install_service
 
   enable_headscale && start_headscale
-  headscale namespaces create default
+  headscale user create default
   LOGI "安装headscale成功,已启动成功"
 }
 
@@ -349,7 +349,8 @@ register_node() {
     fi
   done
   LOGI "输入的key为：$key"
-  headscale -n default nodes register --key $key
+  # headscale -n default nodes register --key $key
+  headscale nodes register --user default --key nodekey:$key
   headscale nodes list
 }
 
@@ -382,8 +383,7 @@ show_status() {
 
 show_menu() {
   echo -e "
-  ${green}headscale管理脚本${plain}
-  ${green}0.${plain} 退出脚本
+  ${green}=========== headscale管理脚本 ===========${plain}
   ${green}1.${plain} 安装服务
   ${green}2.${plain} 卸载服务
   ${green}3.${plain} 启动服务
@@ -391,6 +391,7 @@ show_menu() {
   ${green}5.${plain} 重启服务
   ${green}6.${plain} 查看节点
   ${green}7.${plain} 添加节点
+  ${green}0.${plain} 退出脚本
  "
   show_status
   echo && read -p "请输入选择[0-7]:" num
